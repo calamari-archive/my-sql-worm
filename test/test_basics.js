@@ -12,6 +12,7 @@ var testCase     = require('nodeunit').testCase
 
 ,   MySqlWorm    = require('../index')
 ,   WormRecord   = require('../lib/worm_record')
+,   WormFactory  = require('../lib/worm_record_factory')
 ,   errors       = require('../lib/worm_errors')
 ;
 
@@ -64,7 +65,7 @@ module.exports = testCase({
     
     var Project = worm.define('Project', {});
     test.notEqual(Project, null, 'should be an object there');
-    test.ok(Project instanceof WormRecord, 'should be an WormRecord object');
+    test.equal(Project, WormRecord, 'should be a WormRecord class');
     
     var SameProject = worm.getModel('Project');
     test.equal(SameProject, Project, 'should also be recievable via worm.getModel');
