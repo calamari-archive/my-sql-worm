@@ -11,6 +11,7 @@ var testCase     = require('nodeunit').testCase
 ,	  client
 
 ,   MySqlWorm    = require('../index')
+,   WormRecord   = require('../lib/worm_record')
 ,   errors       = require('../lib/worm_errors')
 ;
 
@@ -54,5 +55,23 @@ module.exports = testCase({
         test.done();
       });
     });
+  },
+  
+  'test creating a WormRecord object': function(test) {
+    worm = new MySqlWorm({
+      connection: TEST_DB_DATA
+    });
+    
+    var Project = worm.define('Project', {});
+    test.notEqual(Project, null, 'should be an object there');
+    test.ok(Project instanceof WormRecord, 'should be an WormRecord object');
+    
+    var SameProject = worm.getModel('Project');
+    test.equal(SameProject, Project, 'should also be recievable via worm.getModel');
+
+    var NotExistingModel = worm.getModel('NotExistingModel');
+    test.equal(NotExistingModel, null, 'should get null if model does not exists');
+
+    test.done();
   }
 });
