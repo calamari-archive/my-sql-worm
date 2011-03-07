@@ -26,7 +26,9 @@ Just use:
 
 ## TODO:
 
-A lot is still todo.
+A lot is still todo. For example:
+
+* Creating table out of the definition (incl. Migrations)
 
 ## Changelog:
 
