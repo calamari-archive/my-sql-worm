@@ -219,5 +219,25 @@ module.exports = testCase({
         test.done();
       });
     });
+  },
+
+  'test result of save': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+      var Project = worm.getModel('Project');
+
+      (new Project({ title: 'Singing', description: 'Singer' })).save(function(err, p1) {
+        test.equal(err, null);
+        test.equal(p1.constructor, WormRecord, 'result should be a WormRecord');
+
+        test.equal(p1.data.title, 'Singing');
+        test.equal(p1.data.projectId, 1);
+        test.equal(p1.id, 1);
+        test.equal(p1.data.description, 'Singer');
+
+        // TODO: add error checks for validation
+        test.done();
+      });
+    });
   }
 });
