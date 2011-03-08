@@ -1,4 +1,4 @@
-# MySQL w(ith) ORM
+# MySQL w(ith) ORM v0.1
 
 ## The Mission:
 
@@ -58,7 +58,12 @@ A lot is still todo. For example (in no specific order):
 
 ## Changelog:
 
-### 2011-03-05:
+### 2011-03-08:
+
+* Added support for instance and static methods
+* Added query support for getting a set of records
+
+### 2011-03-07:
 
 * Added basic quering support with record creation
 * Also added inserting of records into db tables
