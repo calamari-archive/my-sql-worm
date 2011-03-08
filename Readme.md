@@ -53,12 +53,12 @@ A lot is still todo. For example (in no specific order):
 * Validation
 * Getter and Setter functionality
 * Hooks (like save, load) to watch for in and out going stuff
-* Instance and class methods
 * Later on also transaction support would be nice
+* Build documentation
 
 ## Changelog:
 
-### 2011-03-08:
+### 2011-03-08: v0.1
 
 * Added support for instance and static methods
 * Added query support for getting a set of records
