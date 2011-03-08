@@ -40,6 +40,11 @@ module.exports = testCase({
             this.addColumn('title', MySqlWorm.STRING);
             this.addColumn('description', { type: MySqlWorm.TEXT, default: 'Nothin\'' });
           }
+        },
+        classMethods: {
+          loadIt: function(cb) {
+            this.queryOne("SELECT * FROM " + this.tableName + " WHERE description=?", [ 'Hello' ], cb);
+          }
         }
       });
 
@@ -237,6 +242,65 @@ module.exports = testCase({
 
         // TODO: add error checks for validation
         test.done();
+      });
+    });
+  },
+
+  'test static methods': function(test) {
+    test.expect(5);
+    var TestModel = worm.define('TestModel', {
+      structure: {
+        version1: function() {
+          this.addColumn('title', MySqlWorm.STRING);
+          this.addColumn('count', { type: MySqlWorm.INT, default: 0 });
+        }
+      },
+      classMethods: {
+        testMe: function(foo) {
+          test.equal(foo, 42, 'this should be called with my argument');
+        },
+        createObject: function(title) {
+          return new this({ title: title, count: title.length });
+        },
+        loadObjectFromDb: function(title) {
+          return new this({ title: title, count: title.length });
+        }
+      }
+    });
+
+    TestModel.testMe(42);
+
+    var obj = TestModel.createObject('foobar');
+    test.equal(obj.constructor, WormRecord, 'Should have create a instance of WormRecord');
+    test.equal(obj.title, 'foobar', 'Should have create a record with title foobar');
+    test.equal(obj.count, 6, 'Should have create a record with count of 6');
+    test.ok(obj.isNew, 'Should have create a record that is marked as new');
+
+    test.done();
+  },
+
+  'test static method that loads record from db': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+      var Project = worm.getModel('Project')
+      ,   p1      = new Project({ title: 'English', description: 'Hello' })
+      ,   p2      = new Project({ title: 'German', description: 'Hallo' });
+
+      p1.save(function(err) {
+        test.equal(err, null);
+        p2.save(function(err) {
+          test.equal(err, null);
+          
+          Project.loadIt(function(err, myProject) {
+            test.equal(myProject.constructor, WormRecord, 'Should have create a instance of WormRecord');
+            test.equal(myProject.title, 'English', 'Should have create a record with title foobar');
+            test.equal(myProject.description, 'Hello', 'Should have create a record with count of 6');
+            test.ok(!myProject.isNew, 'Should have loaded a record from db');
+            test.equal(myProject.id, 1, 'Should be the first project we created');
+
+            test.done();
+          });
+        });
       });
     });
   }
