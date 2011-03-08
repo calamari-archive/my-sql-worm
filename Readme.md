@@ -50,13 +50,18 @@ Just use:
 A lot is still todo. For example (in no specific order):
 
 * Creating table out of the definition (incl. Migrations)
-* Validation
+* Validation with custom functions
 * Getter and Setter functionality
 * Hooks (like save, load) to watch for in and out going stuff
 * Later on also transaction support would be nice
+* Association tables
 * Build documentation
 
 ## Changelog:
+
+### 2011-03-08: v0.1
+
+* Added regex validation support
 
 ### 2011-03-08: v0.1
 

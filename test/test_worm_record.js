@@ -20,6 +20,12 @@ var testCase     = require('nodeunit').testCase
                         + '`title` VARCHAR( 255 ) NOT NULL,'
                         + '`description` TEXT NOT NULL'
                         + ');'
+,   SQL_TABLE_A_METHOD  = 'CREATE TABLE IF NOT EXISTS `AMethods` ('
+                        + '`aMethodsId` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,'
+                        + '`hello` VARCHAR( 255 ) NOT NULL,'
+                        + '`withNumber` VARCHAR( 255 ) NOT NULL,'
+                        + '`all` VARCHAR( 255 ) NOT NULL'
+                        + ');'
 ;
 
 
@@ -53,11 +59,13 @@ module.exports = testCase({
   },
   tearDown: function(done) {
     client.query('DROP TABLE IF EXISTS `Projects`', function() {
-      client.end(function(err) {
-        if (err) console.log(err);
-        worm.disconnect(function(err) {
+      client.query('DROP TABLE IF EXISTS `AMethods`', function() {
+        client.end(function(err) {
           if (err) console.log(err);
-          done();
+          worm.disconnect(function(err) {
+            if (err) console.log(err);
+            done();
+          });
         });
       });
     });
@@ -385,16 +393,73 @@ module.exports = testCase({
         }
       }
     });
-    
+
     var m1 = new AMethod({ foo: 'no' });
     test.equal(m1.getFooGoo.constructor, Function, 'getFooGoo should be an instance method');
     test.equal(m1.getFooGoo(), 'no-goo', 'should return gooed foo');
-    
+
     m1.addToBar(4);
     test.equal(m1.bar, 4, 'm1.bar should now be 4');
     m1.addToBar(19);
     test.equal(m1.bar, 23, 'm1.bar should now be 23');
-    
+
     test.done();
+  },
+
+  'test regex validation': function(test) {
+    client.query(SQL_TABLE_A_METHOD, function(err) {
+      if (err) console.log(err);
+      var AMethod = worm.define('AMethod', {
+        structure: {
+          version1: function() {
+            this.addColumn('hello', {
+              type:     MySqlWorm.TEXT, // it's a string
+              validate: /^hel*o$/i,     // this is to verify
+              notEmpty: true            // may not be empty
+            });
+            this.addColumn('withNumber', { type: MySqlWorm.TEXT, validate: /[0-9]/ });
+            this.addColumn('all', { type: MySqlWorm.TEXT });
+          }
+        }
+      });
+  
+      var m1 = new AMethod({ hello: 'Heiko' });
+      m1.save(function(err, m1too) {
+        test.equal(err.name, 'ValidationError', 'Should trigger a validation error');
+        test.equal(err.data.length, 1, 'one field should be errornous');
+        test.equal(err.data[0], 'hello', 'hello should be the error triggering field');
+        test.equal(m1, m1too, 'the object should be passed to the save,');
+
+        m1.hello = 'Heo';
+        m1.save(function(err, m1too) {
+          test.equal(err, null, 'should work now, because all can either be empty or must fulfill the regex');
+          test.equal(m1, m1too, 'the object should be passed to the save,');
+
+          var m2 = new AMethod({
+            withNumber: 'nope'
+          });
+          m2.save(function(err) {
+            test.equal(err.name, 'ValidationError', 'Should trigger a validation error, because it may not be empty');
+            test.equal(err.data.length, 2, 'two field should be errornous');
+            test.ok(err.data.indexOf('hello') > -1, 'hello should be errornous');
+            test.ok(err.data.indexOf('withNumber') > -1, 'withNumber should be errornous');
+
+            m2.hello = 'hellllllllllllllo';
+            m2.save(function(err) {
+              test.equal(err.name, 'ValidationError', 'Should trigger a validation error, because it may not be empty');
+              test.equal(err.data.length, 1, 'one field should be errornous');
+              test.equal(err.data[0], 'withNumber', 'withNumber should be the error triggering field');
+
+              m2.withNumber = 'nope1';
+              m2.save(function(err, m2too) {
+                test.equal(err, null, 'should work');
+                test.equal(m2, m2too, 'm2 should be passed to save callback');
+              });
+              test.done();
+            });
+          });
+        });
+        });
+      });
   }
 });
