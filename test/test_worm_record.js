@@ -183,16 +183,48 @@ module.exports = testCase({
                 test.equal(p2db3.title, 'Scooby', 'Should not have touched the title on save');
                 test.equal(p2db3.description, 'diving', 'Should have saved our new description');
 
-
                 // check in db still has only 2 items
                 client.query('SELECT * FROM Projects', function(err, rows) {
-                  test.equal(rows.length, 2, 'We should not have created a new itme');
+                  test.equal(rows.length, 2, 'We should not have created a new item');
                   test.done();
                 });
               });
             });
           });
+        });
+      });
 
+    });
+  },
+
+  'test querying for items at once': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+
+      var Project = worm.getModel('Project')
+      ,   p1      = new Project({ title: 'Dancing' })
+      ,   p2      = new Project({ title: 'Speaking', description: 'Hey you!' })
+      ,   p3      = new Project({ title: 'Watching Movies', description: 'The Dark Knight' });
+
+      p1.save(function(err) {
+        test.equal(err, null);
+        p2.save(function(err) {
+          test.equal(err, null);
+          p3.save(function(err) {
+            test.equal(err, null);
+            
+            Project.queryAll("SELECT * FROM Projects WHERE projectId>1 ORDER BY projectId ASC", function(err, projects) {
+              test.equal(err, null);
+              
+              test.equal(projects.length, 2, 'Should have got two projects');
+              test.equal(projects[0].constructor, WormRecord, 'Should have got objects of type WormRecords');
+              test.equal(projects[1].constructor, WormRecord, 'Should have got objects of type WormRecords');
+              test.equal(projects[0].title, 'Speaking', 'Should be the second saved project');
+              test.equal(projects[1].title, 'Watching Movies', 'Should be the third saved project');
+              
+              test.done();
+            });
+          });
         });
       });
     });
@@ -290,13 +322,44 @@ module.exports = testCase({
         test.equal(err, null);
         p2.save(function(err) {
           test.equal(err, null);
-          
+
           Project.loadIt(function(err, myProject) {
             test.equal(myProject.constructor, WormRecord, 'Should have create a instance of WormRecord');
-            test.equal(myProject.title, 'English', 'Should have create a record with title foobar');
-            test.equal(myProject.description, 'Hello', 'Should have create a record with count of 6');
+            test.equal(myProject.title, 'English', 'Should have create a record with title English');
+            test.equal(myProject.description, 'Hello', 'Should have create a record with description Hello');
             test.ok(!myProject.isNew, 'Should have loaded a record from db');
             test.equal(myProject.id, 1, 'Should be the first project we created');
+
+            test.done();
+          });
+        });
+      });
+    });
+  },
+
+  'test static method that loads record from db': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+      var Project = worm.getModel('Project')
+      ,   p1      = new Project({ title: 'English', description: 'Hello' })
+      ,   p2      = new Project({ title: 'German', description: 'Hallo' });
+
+      Project.loadMore = function(cb) {
+        this.queryAll("SELECT * FROM " + this.tableName + " WHERE title=?", [ 'German' ], cb);
+      }
+
+      p1.save(function(err) {
+        test.equal(err, null);
+        p2.save(function(err) {
+          test.equal(err, null);
+
+          Project.loadMore(function(err, projects) {
+            test.equal(projects.length, 1, 'should got one record in an array');
+            test.equal(projects[0].constructor, WormRecord, 'Should have create a instance of WormRecord');
+            test.equal(projects[0].title, 'German', 'Should have create a record with title German');
+            test.equal(projects[0].description, 'Hallo', 'Should have create a record with description Hallo');
+            test.ok(!projects[0].isNew, 'Should have loaded a record from db');
+            test.equal(projects[0].id, 2, 'Should be the first project we created');
 
             test.done();
           });
