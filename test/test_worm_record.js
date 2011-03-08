@@ -366,5 +366,35 @@ module.exports = testCase({
         });
       });
     });
+  },
+
+  'test instance methods': function(test) {
+    var AMethod = worm.define('AMethod', {
+      structure: {
+        version1: function() {
+          this.addColumn('foo', MySqlWorm.TEXT);
+          this.addColumn('bar', { type: MySqlWorm.INT, default: 0 });
+        }
+      },
+      instanceMethods: {
+        getFooGoo: function() {
+          return this.foo + '-goo';
+        },
+        addToBar: function(val) {
+          this.bar += val;
+        }
+      }
+    });
+    
+    var m1 = new AMethod({ foo: 'no' });
+    test.equal(m1.getFooGoo.constructor, Function, 'getFooGoo should be an instance method');
+    test.equal(m1.getFooGoo(), 'no-goo', 'should return gooed foo');
+    
+    m1.addToBar(4);
+    test.equal(m1.bar, 4, 'm1.bar should now be 4');
+    m1.addToBar(19);
+    test.equal(m1.bar, 23, 'm1.bar should now be 23');
+    
+    test.done();
   }
 });
