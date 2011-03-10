@@ -376,6 +376,88 @@ module.exports = testCase({
     });
   },
 
+  'test Record.find': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+      var Project = worm.getModel('Project')
+      ,   p1      = new Project({ title: 'My-sql-worm', description: 'A MySQL ORM' })
+      ,   p2      = new Project({ title: 'node-parallel', description: 'Flow manager' })
+      ,   p3      = new Project({ title: 'jaz-toolkit', description: 'Useful functions' });
+
+
+      p1.save(function(err) {
+        test.equal(err, null);
+        p2.save(function(err) {
+          test.equal(err, null);
+          p3.save(function(err) {
+            test.equal(err, null);
+
+            Project.find(3, function(err, p4) {
+              test.equal(err, null);
+              test.equal(p4.id, 3, 'should have loaded project with id 3');
+              test.equal(p4.title, 'jaz-toolkit', 'should have loaded project jaz-toolkit');
+
+              Project.find(2, function(err, p5) {
+                test.equal(err, null);
+                test.equal(p5.id, 2, 'should have loaded project with id 2');
+                test.equal(p5.title, 'node-parallel', 'should have loaded project jaz-toolkit');
+
+                Project.find(4, function(err, p6) {
+                  test.equal(err, null);
+                  test.equal(p6, null, 'this project should not exist');
+
+                  test.done();
+                });
+              });
+            });
+
+          });
+        });
+      });
+    });
+  },
+
+  'test Record.findAll': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+      var Project = worm.getModel('Project')
+      ,   p1      = new Project({ title: 'My-sql-worm', description: 'A MySQL ORM' })
+      ,   p2      = new Project({ title: 'node-parallel', description: 'Flow manager' })
+      ,   p3      = new Project({ title: 'jaz-toolkit', description: 'Useful functions' });
+
+
+      p1.save(function(err) {
+        test.equal(err, null);
+        p2.save(function(err) {
+          test.equal(err, null);
+          p3.save(function(err) {
+            test.equal(err, null);
+
+            Project.findAll(function(err, records) {
+              test.equal(err, null);
+              test.equal(records.length, 3, 'should have loaded all previously saved records');
+              var p1found = false,
+                  p2found = false,
+                  p3found = false;
+              records.forEach(function(p) {
+                if (p.id === 1) p1found = true;
+                if (p.id === 2) p2found = true;
+                if (p.id === 3) p3found = true;
+                test.equal(p.constructor, WormRecord, 'Records should be instances of WormRecord');
+              });
+              test.ok(p1found, 'p1 should have been loaded');
+              test.ok(p2found, 'p2 should have been loaded');
+              test.ok(p3found, 'p3 should have been loaded');
+
+              test.done();
+            });
+
+          });
+        });
+      });
+    });
+  },
+
   'test instance methods': function(test) {
     var AMethod = worm.define('AMethod', {
       structure: {
