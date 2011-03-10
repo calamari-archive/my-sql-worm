@@ -61,6 +61,7 @@ A lot is still todo. For example (in no specific order):
 
 ### 2011-03-10:
 
+* Added possibility to define getter and setter methods on attributes
 * Added some tests for defining data structure with iterated versions
 * Added .find and .findAll methods for finding all or specific records
 

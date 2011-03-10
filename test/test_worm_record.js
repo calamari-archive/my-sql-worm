@@ -205,6 +205,73 @@ module.exports = testCase({
     });
   },
 
+  'test getter and setter': function(test) {
+    var Model = worm.define('Model', {
+      structure: {
+        version1: function() {
+          this.addColumn('email', { type: MySqlWorm.STRING, getter: function(v) {
+            return v.toLowerCase();
+          } });
+          this.addColumn('password', { type: MySqlWorm.STRING, setter: function(v) {
+            return 'somesalt' + v;
+          } });
+          this.addColumn('foo', {
+            type: MySqlWorm.INT,
+            getter: function(v) {
+              return v+v;
+            },
+            setter: function(v) {
+              return v - 1;
+            }
+          });
+        }
+      }
+    });
+    
+    // Test setting them within record construction
+    var m1 = new Model({
+      password: 'qwertz',
+      foo: 3
+    });
+    test.equal(m1.getAttribute('password'), 'somesaltqwertz', 'The setter should be called before it is saved into internal storage');
+    test.equal(m1.password, 'somesaltqwertz', 'No getter should get the value that is stored');
+
+    test.equal(m1.getAttribute('foo'), 2, 'The setter should have substracted 1');
+    test.equal(m1.foo, 4, 'The getter should add the same to the stored valued');
+    
+    m1.email = 'Joe@Doe.com';
+    test.equal(m1.getAttribute('email'), 'Joe@Doe.com', 'No setter so nothing has changed');
+    test.equal(m1.email, 'joe@doe.com', 'The getter should have lower cased the value');
+
+    m1.foo = 11;
+    test.equal(m1.getAttribute('foo'), 10, 'The setter should have substracted 1');
+    test.equal(m1.foo, 20, 'The getter should add the same to the stored valued');
+
+    var Model2 = worm.define('Model2', {
+      structure: {
+        version1: function() {
+          this.addColumn('a', { type: MySqlWorm.INT, getter: 5 });
+        }
+      }
+    });
+    test.throws(function() {
+      // TODO: This error should be thrown on definition time, not on instantiation time
+      var m2 = new Model2();
+    }, errors.WrongDefinitionError, 'none function setter should throw');
+    var Model3 = worm.define('Model2', {
+      structure: {
+        version1: function() {
+          this.addColumn('a', { type: MySqlWorm.INT, setter: 5 });
+        }
+      }
+    });
+    test.throws(function() {
+      var m3 = new Model3();
+    }, errors.WrongDefinitionError, 'none function getter should throw');
+
+    test.done();
+  },
+
   'test querying for items at once': function(test) {
     client.query(SQL_TABLE_PROJECTS, function(err) {
       if (err) console.log(err);
