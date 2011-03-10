@@ -59,7 +59,12 @@ A lot is still todo. For example (in no specific order):
 
 ## Changelog:
 
-### 2011-03-08: v0.1
+### 2011-03-10:
+
+* Added some tests for defining data structure with iterated versions
+* Added .find and .findAll methods for finding all or specific records
+
+### 2011-03-08:
 
 * Added regex validation support
 
