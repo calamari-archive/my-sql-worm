@@ -636,8 +636,9 @@ module.exports = testCase({
         }
       });
 
-      var now  = new Date(),
-          t1 = new Test({ time: now }),
+      var now    = new Date(),
+          t1     = new Test({ time: now }),
+          tEmpty = new Test(),
           dateTimeString = WormHelpers.dateToDateTime(now);
       test.equal(t1.time.constructor, Date, 'should be a Date object');
       test.equal(t1.getAttribute('time').constructor, Date, 'should also be saved as a Date object');
@@ -679,6 +680,11 @@ module.exports = testCase({
                   // the mysql-native-driver makes a date object out of it?
 //                  test.equal(rows[0].time, '2000-5-31 23:59:59', 'The time should be saved in a DateTime format');
                   test.equal(rows[0].time.constructor, Date, 'The time should be saved in a DateTime format');
+
+                  test.doesNotThrow(function() {
+                    tEmpty.save();
+                  }, 'No time should not be a problem');
+
                   test.done();
                 });
               });
