@@ -619,6 +619,62 @@ module.exports = testCase({
       });
     });
   },
+  'test validation with functions': function(test) {
+    client.query(SQL_TABLE_A_METHOD, function(err) {
+      if (err) console.log(err);
+      var AMethod = worm.define('AMethod', {
+        structure: {
+          version1: function() {
+            this.addColumn('hello', {
+              type:     MySqlWorm.TEXT, // it's a string
+              validate: function(v) { return (/^hel*o$/i).test(v); }, // this is to verify
+              notEmpty: true            // may not be empty
+            });
+            this.addColumn('withNumber', { type: MySqlWorm.TEXT, validate: function(v) {return v < 13; } });
+            this.addColumn('all', { type: MySqlWorm.TEXT });
+          }
+        }
+      });
+
+      var m1 = new AMethod({ hello: 'Heiko' });
+      m1.save(function(err, m1too) {
+        test.equal(err.name, 'ValidationError', 'Should trigger a validation error');
+        test.equal(err.data.length, 1, 'one field should be errornous');
+        test.equal(err.data[0], 'hello', 'hello should be the error triggering field');
+        test.equal(m1, m1too, 'the object should be passed to the save,');
+
+        m1.hello = 'Heo';
+        m1.save(function(err, m1too) {
+          test.equal(err, null, 'should work now, because hello can either be empty or must fulfill the regex');
+          test.equal(m1, m1too, 'the object should be passed to the save,');
+
+          var m2 = new AMethod({
+            withNumber: 13
+          });
+          m2.save(function(err) {
+            test.equal(err.name, 'ValidationError', 'Should trigger a validation error, because it may not be empty');
+            test.equal(err.data.length, 2, 'two field should be errornous');
+            test.ok(err.data.indexOf('hello') > -1, 'hello should be errornous');
+            test.ok(err.data.indexOf('withNumber') > -1, 'withNumber should be errornous');
+
+            m2.hello = 'hellllllllllllllo';
+            m2.save(function(err) {
+              test.equal(err.name, 'ValidationError', 'Should trigger a validation error, because it may not be empty');
+              test.equal(err.data.length, 1, 'one field should be errornous');
+              test.equal(err.data[0], 'withNumber', 'withNumber should be the error triggering field');
+
+              m2.withNumber = 12;
+              m2.save(function(err, m2too) {
+                test.equal(err, null, 'should work');
+                test.equal(m2, m2too, 'm2 should be passed to save callback');
+              });
+              test.done();
+            });
+          });
+        });
+      });
+    });
+  },
 
   'test datetime': function(test) {
     client.query(SQL_TABLE_TIMETEST, function(err) {
