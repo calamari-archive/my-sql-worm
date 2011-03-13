@@ -13,6 +13,7 @@ var testCase     = require('nodeunit').testCase
 
 ,   MySqlWorm    = require('../index')
 ,   WormRecord   = require('../lib/worm_record')
+,   WormHelpers  = require('../lib/worm_helpers')
 ,   errors       = require('../lib/worm_errors')
 
 ,   SQL_TABLE_PROJECTS  = 'CREATE TABLE IF NOT EXISTS `Projects` ('
@@ -25,6 +26,11 @@ var testCase     = require('nodeunit').testCase
                         + '`hello` VARCHAR( 255 ) NOT NULL,'
                         + '`withNumber` VARCHAR( 255 ) NOT NULL,'
                         + '`all` VARCHAR( 255 ) NOT NULL'
+                        + ');'
+,   SQL_TABLE_TIMETEST  = 'CREATE TABLE IF NOT EXISTS `Timetests` ('
+                        + '`timetestId` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,'
+                        + '`title` VARCHAR( 255 ) NOT NULL,'
+                        + '`time` DATETIME NOT NULL'
                         + ');'
 ;
 
@@ -60,11 +66,13 @@ module.exports = testCase({
   tearDown: function(done) {
     client.query('DROP TABLE IF EXISTS `Projects`', function() {
       client.query('DROP TABLE IF EXISTS `AMethods`', function() {
-        client.end(function(err) {
-          if (err) console.log(err);
-          worm.disconnect(function(err) {
+        client.query('DROP TABLE IF EXISTS `Timetests`', function() {
+          client.end(function(err) {
             if (err) console.log(err);
-            done();
+            worm.disconnect(function(err) {
+              if (err) console.log(err);
+              done();
+            });
           });
         });
       });
@@ -571,7 +579,7 @@ module.exports = testCase({
           }
         }
       });
-  
+
       var m1 = new AMethod({ hello: 'Heiko' });
       m1.save(function(err, m1too) {
         test.equal(err.name, 'ValidationError', 'Should trigger a validation error');
@@ -608,7 +616,77 @@ module.exports = testCase({
             });
           });
         });
+      });
+    });
+  },
+
+  'test datetime': function(test) {
+    client.query(SQL_TABLE_TIMETEST, function(err) {
+      if (err) console.log(err);
+      var Test = worm.define('Timetest', {
+        structure: {
+          version1: function() {
+            this.addColumn('title', {
+              type: MySqlWorm.STRING,
+              onSave: function(v) { return v || 'no title'; },
+              onLoad: function(v) { return v + '-' + v; }
+            });
+            this.addColumn('time', { type: MySqlWorm.DATETIME }); // should have a default onSave and onLoad method
+          }
+        }
+      });
+
+      var now  = new Date(),
+          t1 = new Test({ time: now }),
+          dateTimeString = WormHelpers.dateToDateTime(now);
+      test.equal(t1.time.constructor, Date, 'should be a Date object');
+      test.equal(t1.getAttribute('time').constructor, Date, 'should also be saved as a Date object');
+      
+      test.equal(t1.title, null, 'There should be not title set bevor saving');
+      t1.save(function(err) {
+        test.equal(err, null);
+        
+        test.equal(t1.title, null, 'The onSave result should only be saved to db, not change the object itself');
+        
+        Test.find(t1.id, function(err, t2) {
+          test.equal(err, null);
+
+          test.equal(t2.time.constructor, Date, 'stored value should retrieved again be a Date object');
+          test.equal(t2.time.toString(), now.toString(), 'should be the same Time');
+          test.equal(t2.title, 'no title-no title', 'The result should be altered by the onload');
+
+          //TODO onSave: and  onLoad: methods
+          client.query("SELECT * FROM Timetests", function(err, rows) {
+            test.equal(rows.length, 1, 'There should be only one row');
+            test.equal(rows[0].title, 'no title', 'Should be the onSave changed Value');
+            // the mysql-native-driver makes a date object out of it?
+            //test.equal(rows[0].time, dateTimeString, 'The time should be saved in a DateTime format');
+            test.equal(rows[0].time.constructor, Date, 'The time should be saved in a DateTime format');
+
+            // Test the same with record that has already an ID
+            t1.time = new Date(2000, 4, 31, 23, 59, 59);
+            t1.save(function(err) {
+              test.equal(err, null);
+
+              test.equal(t1.title, null, 'The onSave result should only be saved to db, not change the object itself');
+
+              Test.find(t1.id, function(err, t2) {
+                test.equal(err, null);
+
+                //TODO onSave: and  onLoad: methods
+                client.query("SELECT * FROM Timetests", function(err, rows) {
+                  test.equal(rows.length, 1, 'There should still be only one row');
+                  // the mysql-native-driver makes a date object out of it?
+//                  test.equal(rows[0].time, '2000-5-31 23:59:59', 'The time should be saved in a DateTime format');
+                  test.equal(rows[0].time.constructor, Date, 'The time should be saved in a DateTime format');
+                  test.done();
+                });
+              });
+            });
+
+          });
         });
       });
+    });
   }
 });

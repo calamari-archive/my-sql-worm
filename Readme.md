@@ -51,13 +51,17 @@ A lot is still todo. For example (in no specific order):
 
 * Creating table out of the definition (incl. Migrations)
 * Validation with custom functions
-* Getter and Setter functionality
 * Hooks (like save, load) to watch for in and out going stuff
 * Later on also transaction support would be nice
 * Association tables
 * Build documentation
 
 ## Changelog:
+
+### 2011-03-13:
+
+* Added onLoad and onSave methods
+* Datetime will now be stored right and retrieved as objects of type Date
 
 ### 2011-03-10:
 
