@@ -694,5 +694,100 @@ module.exports = testCase({
         });
       });
     });
+  },
+
+  'test removing a record': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+
+      var Project = worm.getModel('Project'),
+          p1      = new Project({ title: 'one' }),
+          p2      = new Project({ title: 'two' });
+
+      p1.save(function(err) {
+        p2.save(function(err) {
+          client.query("SELECT * FROM Projects", function(err, rows) {
+            test.equal(rows.length, 2, 'There should be two rows in database');
+
+            p1.remove(function(err, project1) {
+              test.equal(err, null);
+
+              test.equal(project1, p1, 'The callback params should be like in save');
+              test.equal(p1.id, null, 'Record should not have an id anymore')
+              test.equal(project1.id, null, 'Record should not have an id anymore')
+              test.ok(p1.isDeleted, 'Record should be marked as deleted')
+              client.query("SELECT * FROM Projects", function(err, rows) {
+                test.equal(rows.length, 1, 'There should now be only one row in db');
+                test.equal(rows[0].projectId, p2.id, 'Only the second item should be there');
+
+                test.done();
+              });
+            });
+          });
+        });
+      });
+    });
+  },
+
+  'test removing a record with class method': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+
+      var Project = worm.getModel('Project'),
+          p1      = new Project({ title: 'one' }),
+          p2      = new Project({ title: 'two' });
+
+      p1.save(function(err) {
+        p2.save(function(err) {
+          client.query("SELECT * FROM Projects", function(err, rows) {
+            test.equal(rows.length, 2, 'There should be two rows in database');
+
+            Project.remove(1, function(err, rowCount) {
+              test.equal(err, null);
+              test.equal(rowCount, 1, 'One row should have been deleted');
+
+              client.query("SELECT * FROM Projects", function(err, rows) {
+                test.equal(rows.length, 1, 'There should now be only one row in db');
+                test.equal(rows[0].projectId, p2.id, 'Only the second item should be there');
+
+                test.done();
+              });
+            });
+          });
+        });
+      });
+    });
+  },
+
+  'test removing all records': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+
+      var Project = worm.getModel('Project'),
+          p1      = new Project({ title: 'one' }),
+          p2      = new Project({ title: 'two' }),
+          p3      = new Project({ title: 'three' });
+
+      p1.save(function(err) {
+        p2.save(function(err) {
+          p3.save(function(err) {
+            client.query("SELECT * FROM Projects", function(err, rows) {
+              test.equal(rows.length, 3, 'There should be three rows in database');
+
+              Project.remove(function(err, rowCount) {
+                test.equal(err, null);
+                test.equal(rowCount, 3, 'Three rows should have been deleted');
+
+                client.query("SELECT * FROM Projects", function(err, rows) {
+                  test.equal(rows.length, 0, 'There should now be no records in db anymore');
+
+                  test.done();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
   }
 });

@@ -60,6 +60,7 @@ A lot is still todo. For example (in no specific order):
 
 ### 2011-03-13:
 
+* Added remove methods for removing one or all records
 * Added onLoad and onSave methods
 * Datetime will now be stored right and retrieved as objects of type Date
 
