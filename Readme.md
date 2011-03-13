@@ -60,6 +60,7 @@ A lot is still todo. For example (in no specific order):
 
 ### 2011-03-13:
 
+* Getters and setters can now be added to the records
 * Functions can now be used for validation
 * Added remove methods for removing one or all records
 * Added onLoad and onSave methods

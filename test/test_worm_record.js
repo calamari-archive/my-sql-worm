@@ -235,7 +235,7 @@ module.exports = testCase({
         }
       }
     });
-    
+
     // Test setting them within record construction
     var m1 = new Model({
       password: 'qwertz',
@@ -277,6 +277,43 @@ module.exports = testCase({
       var m3 = new Model3();
     }, errors.WrongDefinitionError, 'none function getter should throw');
 
+    test.done();
+  },
+
+  'test getters and setters on object': function(test) {
+     var User = worm.define('User', {
+      structure: {
+        version1: function() {
+          this.addColumn('firstname', MySqlWorm.STRING);
+          this.addColumn('lastname', MySqlWorm.STRING);
+        }
+      },
+      getter: {
+        fullname: function() {
+          return ((this.firstname || '') + ' ' + (this.lastname || '')).trim();
+        }
+      },
+      setter: {
+        fullname: function(name) {
+          var namesplit = name.split(' ');
+          this.firstname = namesplit[0];
+          this.lastname = namesplit[1];
+        }
+      }
+    });
+
+    var u1 = new User({
+      firstname: 'Buddy',
+      lastname:  'Hollywood'
+    });
+    test.equal(u1.fullname, 'Buddy Hollywood');
+    u1.lastname = 'Holly';
+    test.equal(u1.fullname, 'Buddy Holly');
+    var u2 = new User();
+    test.equal(u2.fullname, '');
+    u2.fullname = 'Michael Jackson';
+    test.equal(u2.firstname, 'Michael', 'fullname should store in first and lastname');
+    test.equal(u2.lastname, 'Jackson', 'fullname should store in first and lastname');
     test.done();
   },
 
