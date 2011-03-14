@@ -80,9 +80,22 @@ module.exports = testCase({
   },
 
   'test basic instantiation and attributes': function(test) {
+    test.expect(2);
+    var Foo  = worm.getModel('Foo');
+    try {
+      var foo1 = new Foo({ dontExist: true });
+    } catch(error) {
+      test.equal(error.name, 'MissingDefinitionError', 'Should throw an MissingDefinitionError');
+      test.ok(/dontExist/.test(error.message), 'Error should contain name of wrong field we entered.');
+    }
+
+    test.done();
+  },
+
+  'test basic instantiation throws speaking errors if set with something unexpected': function(test) {
     var Foo  = worm.getModel('Foo')
     ,   foo1 = new Foo();
-    
+
     test.equal(foo1.isNew, true, 'A new created record should be marked as new');
     test.equal(foo1.dirtyAttributes.length, 0, 'We should not have touched any attributes');
     test.ok(!foo1.isDirty, 'We should not have touched any attributes');
