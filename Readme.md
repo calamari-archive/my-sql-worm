@@ -50,16 +50,17 @@ Just use:
 A lot is still todo. For example (in no specific order):
 
 * Creating table out of the definition (incl. Migrations)
-* Validation with custom functions
 * Hooks (like save, load) to watch for in and out going stuff
 * Later on also transaction support would be nice
 * Association tables
 * Build documentation
+* Optimize Record.save so it does only one query.
 
 ## Changelog:
 
 ### 2011-03-15:
 
+* Added Record.save method to save mutilple records at once
 * Added methods findAllAsHash and queryAllAsHash
 
 ### 2011-03-13:

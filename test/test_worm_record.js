@@ -16,6 +16,8 @@ var testCase     = require('nodeunit').testCase
 ,   WormHelpers  = require('../lib/worm_helpers')
 ,   errors       = require('../lib/worm_errors')
 
+,   Parallel     = require('../deps/parallel')
+
 ,   SQL_TABLE_PROJECTS  = 'CREATE TABLE IF NOT EXISTS `Projects` ('
                         + '`projectId` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,'
                         + '`title` VARCHAR( 255 ) NOT NULL,'
@@ -968,6 +970,78 @@ module.exports = testCase({
               });
             });
           });
+        });
+      });
+    });
+  },
+
+  'test Record.save([r1, r2])': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+
+      var Project = worm.getModel('Project')
+      ,   p1      = new Project({ title: 'Dancing' })
+      ,   p2      = new Project({ title: 'Speaking', description: 'Hey you!' })
+      ,   p3      = new Project({ title: 'Watching Movies', description: 'The Dark Knight' });
+
+      Project.save([ p1, p2, p3 ], function(err, projects) {
+        test.equal(err, null);
+
+        test.equal(projects.length, 3, 'Should return all saved projects immediately');
+        test.equal(projects[0].title, 'Dancing', 'Should be the first one of given params');
+
+        Project.findAllAsHash(function(err, projects) {
+          test.equal(err, null);
+
+          test.equal(projects[1].title, 'Dancing', 'Should have saved all items');
+          test.equal(projects[2].title, 'Speaking', 'Should have saved all items');
+          test.equal(projects[3].title, 'Watching Movies', 'Should have saved all items');
+
+          test.done();
+        });
+      });
+    });
+  },
+
+  'test Record.save([r1, r2]) with failing items': function(test) {
+    client.query(SQL_TABLE_A_METHOD, function(err) {
+      if (err) console.log(err);
+
+      var AMethod = worm.define('AMethod', {
+        structure: {
+          version1: function() {
+            this.addColumn('hello', {
+              type:     MySqlWorm.TEXT, // it's a string
+              validate: function(v) { return (/^h/i).test(v); }, // this is to verify
+              notEmpty: true            // may not be empty
+            });
+          }
+        }
+      })
+      ,   a1      = new AMethod({ hello: 'Hi' })
+      ,   a2      = new AMethod({ hello: 'Tag' })
+      ,   a3      = new AMethod({ hello: 'Hola' });
+
+      AMethod.save([ a1, a2, a3 ], function(err, items) {
+        test.equal(err.constructor, Array, 'Should return an array of errors');
+
+        test.equal(err[0].name, 'ValidationError', 'Should trigger a validation error');
+        test.equal(err[0].data.length, 1, 'one item should be errornous');
+        test.equal(err[0].item.constructor, WormRecord, 'should return the Record object that was not successfully saved.');
+        test.equal(err[0].item.hello, 'Tag', 'The second one was not saved');
+        test.equal(err[0].data[0], 'hello', 'hello should be the error triggering field');
+
+        test.equal(items.length, 2, 'Should return all saved items immediately');
+        test.equal(items[0].hello, 'Hi', 'Should be the first one of given params');
+        test.equal(items[1].hello, 'Hola', 'Should be the first one of given params');
+
+        AMethod.findAll(function(err, items) {
+          test.equal(items.length, 2, 'Should have loaded all two saved items');
+
+          test.equal(items[0].hello, 'Hi', 'Should be the first one of given params');
+          test.equal(items[1].hello, 'Hola', 'Should be the first one of given params');
+
+          test.done();
         });
       });
     });
