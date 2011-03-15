@@ -58,6 +58,10 @@ A lot is still todo. For example (in no specific order):
 
 ## Changelog:
 
+### 2011-03-15:
+
+* Added methods findAllAsHash and queryAllAsHash
+
 ### 2011-03-13:
 
 * Getters and setters can now be added to the records

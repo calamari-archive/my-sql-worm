@@ -895,5 +895,81 @@ module.exports = testCase({
         });
       });
     });
+  },
+
+  'test Record.findAllAsHash': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+
+      var Project = worm.getModel('Project'),
+          p1      = new Project({ title: 'one' }),
+          p2      = new Project({ title: 'two' }),
+          p3      = new Project({ title: 'three' });
+
+      p1.save(function(err) {
+        p2.save(function(err) {
+          p3.save(function(err) {
+            Project.findAllAsHash(function(err, projects) {
+              test.equal(projects.constructor, Object, 'Should be an object with ids as keys');
+              test.equal(Object.keys(projects).length, 3, 'There should be three projects');
+              test.equal(projects[1].title, 'one', 'Id 1 should be p1');
+              test.equal(projects[2].title, 'two', 'Id 2 should be p2');
+              test.equal(projects[3].title, 'three', 'Id 3 should be p3');
+              test.equal(projects[1].constructor, WormRecord, 'Should have got objects of type WormRecords');
+              test.equal(projects[2].constructor, WormRecord, 'Should have got objects of type WormRecords');
+              test.equal(projects[3].constructor, WormRecord, 'Should have got objects of type WormRecords');
+
+              test.done();
+            });
+          });
+        });
+      });
+    });
+  },
+
+  'test Record.queryAllAsHash': function(test) {
+    client.query(SQL_TABLE_PROJECTS, function(err) {
+      if (err) console.log(err);
+
+      var Project = worm.getModel('Project')
+      ,   p1      = new Project({ title: 'Dancing' })
+      ,   p2      = new Project({ title: 'Speaking', description: 'Hey you!' })
+      ,   p3      = new Project({ title: 'Watching Movies', description: 'The Dark Knight' });
+
+      p1.save(function(err) {
+        test.equal(err, null);
+        p2.save(function(err) {
+          test.equal(err, null);
+          p3.save(function(err) {
+            test.equal(err, null);
+
+            Project.queryAllAsHash("SELECT * FROM Projects WHERE projectId>1 ORDER BY projectId ASC", function(err, projects) {
+              test.equal(err, null);
+
+              test.equal(projects.constructor, Object, 'Should be an object with ids as keys');
+              test.equal(Object.keys(projects).length, 2, 'Should have got two projects');
+              test.equal(projects[2].constructor, WormRecord, 'Should have got objects of type WormRecords');
+              test.equal(projects[3].constructor, WormRecord, 'Should have got objects of type WormRecords');
+              test.equal(projects[2].title, 'Speaking', 'Should be the second saved project');
+              test.equal(projects[3].title, 'Watching Movies', 'Should be the third saved project');
+
+                // Test the same with different parameters
+                Project.queryAllAsHash("SELECT * FROM Projects WHERE projectId>? ORDER BY projectId ASC", [ 1 ], function(err, projects) {
+                test.equal(err, null);
+
+                test.equal(projects.constructor, Object, 'Should be an object with ids as keys');
+                test.equal(Object.keys(projects).length, 2, 'Should have got two projects');
+                test.equal(projects[2].constructor, WormRecord, 'Should have got objects of type WormRecords');
+                test.equal(projects[3].constructor, WormRecord, 'Should have got objects of type WormRecords');
+                test.equal(projects[2].title, 'Speaking', 'Should be the second saved project');
+                test.equal(projects[3].title, 'Watching Movies', 'Should be the third saved project');
+
+                test.done();
+              });
+            });
+          });
+        });
+      });
+    });
   }
 });
