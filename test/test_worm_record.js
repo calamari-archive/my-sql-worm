@@ -34,6 +34,10 @@ var testCase     = require('nodeunit').testCase
                         + '`title` VARCHAR( 255 ) NOT NULL,'
                         + '`time` DATETIME NOT NULL'
                         + ');'
+,   SQL_TABLE_BOOLEANS  = 'CREATE TABLE IF NOT EXISTS `Booleans` ('
+                        + '`booleanId` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,'
+                        + '`booly` TINYINT( 1 ) NOT NULL'
+                        + ');'
 ;
 
 
@@ -66,17 +70,17 @@ module.exports = testCase({
     });
   },
   tearDown: function(done) {
-    client.query('DROP TABLE IF EXISTS `Projects`', function() {
-      client.query('DROP TABLE IF EXISTS `AMethods`', function() {
-        client.query('DROP TABLE IF EXISTS `Timetests`', function() {
-          client.end(function(err) {
-            if (err) console.log(err);
-            worm.disconnect(function(err) {
-              if (err) console.log(err);
-              done();
-            });
-          });
-        });
+    var p = new Parallel();
+    client.query('DROP TABLE IF EXISTS `Projects`', p.recv());
+    client.query('DROP TABLE IF EXISTS `AMethods`', p.recv());
+    client.query('DROP TABLE IF EXISTS `Timetests`', p.recv());
+    client.query('DROP TABLE IF EXISTS `Booleans`', p.recv());
+    client.end(p.recv('err'));
+    p.run(function(result) {
+      if (result.err) console.log(result.err);
+      worm.disconnect(function(err) {
+        if (err) console.log(err);
+        done();
       });
     });
   },
@@ -281,7 +285,7 @@ module.exports = testCase({
       // TODO: This error should be thrown on definition time, not on instantiation time
       var m2 = new Model2();
     }, errors.WrongDefinitionError, 'none function setter should throw');
-    var Model3 = worm.define('Model2', {
+    var Model3 = worm.define('Model3', {
       structure: {
         version1: function() {
           this.addColumn('a', { type: MySqlWorm.INT, setter: 5 });
@@ -293,6 +297,74 @@ module.exports = testCase({
     }, errors.WrongDefinitionError, 'none function getter should throw');
 
     test.done();
+  },
+
+  'test getters and setters for boolean': function(test) {
+    client.query(SQL_TABLE_BOOLEANS, function(err) {
+      if (err) console.log(err);
+      var p = new Parallel();
+      // Test boolean conversions
+      var Model = worm.define('Boolean', {
+        structure: {
+          version1: function() {
+            // this should automatically convert between boolean and TINYINT
+            this.addColumn('booly', MySqlWorm.BOOLEAN);
+          }
+        }
+      });
+
+      var m1 = new Model();
+      test.equal(typeof m1.booly, 'boolean', 'Should always be boolean');
+      test.equal(m1.booly, false);
+      test.equal(typeof m1.getAttribute('booly'), 'boolean', 'Should also be saved as boolean');
+      test.equal(m1.getAttribute('booly'), false);
+
+      m1.booly = true;
+      test.equal(typeof m1.booly, 'boolean', 'Should always be boolean');
+      test.equal(m1.booly, true);
+      test.equal(typeof m1.getAttribute('booly'), 'boolean', 'Should also be saved as boolean');
+      test.equal(m1.getAttribute('booly'), true);
+
+      m1.booly = 1;
+      test.equal(typeof m1.booly, 'boolean', 'Should always be boolean');
+      test.equal(m1.booly, true);
+
+      m1.booly = "hi";
+      test.equal(typeof m1.booly, 'boolean', 'Should always be boolean');
+      test.equal(m1.booly, true);
+
+      m1.booly = "";
+      test.equal(typeof m1.booly, 'boolean', 'Should always be boolean');
+      test.equal(m1.booly, false);
+      test.equal(typeof m1.getAttribute('booly'), 'boolean', 'Should also be saved as boolean');
+      test.equal(m1.getAttribute('booly'), false);
+
+      m1.booly = null;
+      test.equal(typeof m1.booly, 'boolean', 'Should always be boolean');
+      test.equal(m1.booly, false);
+
+      m1.booly = false;
+      test.equal(typeof m1.booly, 'boolean', 'Should always be boolean');
+      test.equal(m1.booly, false);
+
+      var m2 = new Model({ booly: "yes" });
+      m1.save(p.recv());
+      m2.save(p.recv());
+      p.run(function() {
+        Model.find(m1.id, function(err, m1loaded) {
+          test.equal(typeof m1loaded.booly, 'boolean', 'Should always be boolean');
+          test.equal(m1loaded.booly, false);
+          
+          Model.find(m2.id, function(err, m2loaded) {
+            test.equal(typeof m2loaded.booly, 'boolean', 'Should always be boolean');
+            test.equal(m2loaded.booly, true);
+            
+            test.done();
+          });
+        });
+      });
+
+    });
   },
 
   'test getters and setters on object': function(test) {
