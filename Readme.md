@@ -58,6 +58,10 @@ A lot is still todo. For example (in no specific order):
 
 ## Changelog:
 
+### 2011-03-16:
+
+* Added conversion for boolean properties
+
 ### 2011-03-15:
 
 * Added Record.save method to save mutilple records at once
